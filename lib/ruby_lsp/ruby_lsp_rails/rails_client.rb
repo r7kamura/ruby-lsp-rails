@@ -29,23 +29,7 @@ module RubyLsp
 
         dummy_path = File.join(project_root, "test", "dummy")
         @root = T.let(Dir.exist?(dummy_path) ? dummy_path : project_root.to_s, String)
-        app_uri_path = "#{@root}/tmp/app_uri.txt"
-
-        unless File.exist?(app_uri_path)
-          raise NeedsRestartError, <<~MESSAGE
-            The Ruby LSP Rails extension needs to be initialized. Please restart the Rails server and the Ruby LSP
-            to get Rails features in the editor
-          MESSAGE
-        end
-
-        url = File.read(app_uri_path).chomp
-
-        scheme, rest = url.split("://")
-        uri, port = T.must(rest).split(":")
-
-        @ssl = T.let(scheme == "https", T::Boolean)
-        @uri = T.let(T.must(uri), String)
-        @port = T.let(T.must(port).to_i, Integer)
+        @http_client = T.let(nil, T.nilable(Net::HTTP))
       end
 
       sig { params(name: String).returns(T.nilable(T::Hash[Symbol, T.untyped])) }
@@ -72,11 +56,32 @@ module RubyLsp
 
       sig { params(path: String, timeout: T.nilable(Float)).returns(Net::HTTPResponse) }
       def request(path, timeout = nil)
-        http = Net::HTTP.new(@uri, @port)
-        http.use_ssl = @ssl
-        http.read_timeout = timeout if timeout
-        http.get("/ruby_lsp_rails/#{path}")
+        http_client(timeout).get("/ruby_lsp_rails/#{path}")
       end
+
+      sig { params(timeout: T.nilable(Float)).returns(Net::HTTP) }
+      def http_client(timeout)
+        @http_client ||= begin
+          app_uri_path = "#{@root}/tmp/app_uri.txt"
+          unless File.exist?(app_uri_path)
+            raise NeedsRestartError, <<~MESSAGE
+              The Ruby LSP Rails extension needs to be initialized. Please restart the Rails server and the Ruby LSP
+              to get Rails features in the editor
+            MESSAGE
+          end
+
+          url = File.read(app_uri_path).chomp
+
+          scheme, rest = url.split("://")
+          uri, port = T.must(rest).split(":")
+
+          http = Net::HTTP.new(uri, port)
+          http.use_ssl = scheme == "https"
+          http.read_timeout = timeout if timeout
+          http
+        end
+      end
+
     end
   end
 end
