@@ -8,6 +8,7 @@ module RubyLsp
     class HoverTest < ActiveSupport::TestCase
       setup do
         @message_queue = Thread::Queue.new
+        stub_rails_config(server: true)
       end
 
       teardown do

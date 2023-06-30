@@ -26,6 +26,13 @@ module ActiveSupport
       Net::HTTP.any_instance.expects(:get).returns(response)
     end
 
+    def stub_rails_config(server:)
+      ruby_lsp_rails = ActiveSupport::OrderedOptions.new
+      T.unsafe(ruby_lsp_rails).server = server
+      configuration = stub(ruby_lsp_rails: ruby_lsp_rails)
+      ::Rails.stubs(:configuration).returns(configuration)
+    end
+
     def setup
       File.write("test/dummy/tmp/app_uri.txt", "http://localhost:3000")
     end

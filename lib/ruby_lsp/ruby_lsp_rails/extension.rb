@@ -14,6 +14,8 @@ module RubyLsp
 
       sig { override.void }
       def activate
+        return unless ::Rails.configuration.ruby_lsp_rails.server
+
         RubyLsp::Rails::RailsClient.instance.check_if_server_is_running!
       end
 

@@ -27,6 +27,8 @@ module RubyLsp
 
       sig { params(emitter: RubyLsp::EventEmitter, message_queue: Thread::Queue).void }
       def initialize(emitter, message_queue)
+        return unless ::Rails.configuration.ruby_lsp_rails.server
+
         super
 
         @response = T.let(nil, ResponseType)
